@@ -1,0 +1,174 @@
+Map Reduce Programs for Processing DataSet:
+
+
+
+		Transaction DataSet:
+		--------------------
+
+
+*******Find all records from dataset which are under "Exercise & Fitness" category?
+-----------------------------------------------------------------------------------
+
+
+
+
+import java.io.IOException;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
+
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+
+
+
+
+public class TransactionFitness
+{
+	public static class TransactionMap extends Mapper<LongWritable,Text,Text,NullWritable>
+	{
+		
+		//private final static IntWritable one = new IntWritable(1);
+		private Text sentence = new Text();
+		public void map(LongWritable key,Text value,Context context) throws IOException,InterruptedException
+		{
+			String word_line= context.getConfiguration().get("myText");
+			String line = value.toString();
+			if(word_line!=null)
+			{
+				if(line.contains(word_line))
+				{
+					sentence.set(line);
+					context.write(sentence,NullWritable.get());
+				}
+			}
+		}
+		
+	}
+	/*public static class Reduceclass extends Reducer<Text,IntWritable,Text,IntWritable>
+	{
+		private  IntWritable result = new IntWritable();
+		public void reduce(Text key,Iterable<IntWritable> values,Context context) throws IOException,InterruptedException
+		{
+			int sum =0;
+			for(IntWritable val:values)
+			{
+				sum += val.get();
+			}
+			result.set(sum);
+			context.write(key,result);
+		}*/
+	
+	public static void main(String []args)throws Exception
+	{
+		Configuration conf = new Configuration();
+		if(args.length>2)
+		{
+			conf.set("myText",args[2]);
+		}
+		 Job job = Job.getInstance(conf,"Search state");
+		    job.setJarByClass(TransactionFitness.class);
+		    job.setMapperClass(TransactionMap.class);
+		    //job.setCombinerClass(ReduceClass.class);
+		   // job.setReducerClass(Reduceclass.class);
+		    //job.setNumReduceTasks(2);
+		    job.setOutputKeyClass(Text.class);
+		    job.setOutputValueClass(NullWritable.class);
+		    FileInputFormat.addInputPath(job, new Path(args[0]));
+		    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		    System.exit(job.waitForCompletion(true) ? 0 : 1);
+	}
+	}
+
+
+
+
+
+
+
+**** find number of transactions for each state in Transaction Set?
+---------------------------------------------------------------------
+
+
+
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.Text;
+
+import org.apache.hadoop.mapreduce.Job;
+import org.apache.hadoop.mapreduce.Mapper;
+import org.apache.hadoop.mapreduce.Reducer;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
+import java.io.*;
+import org.apache.hadoop.io.*;
+
+
+
+public class Transaction_data
+{
+	
+	public static class TransactionMapper extends Mapper<LongWritable,Text,Text,IntWritable>
+	{
+	private final static IntWritable one = new IntWritable(1);
+	//private Text word = new Text();
+	public void map(LongWritable key,Text value,Context context) throws IOException,InterruptedException
+	{
+		String state = value.toString();
+		String [] parts = state.split(",");
+		
+		String word = parts[7];
+		context.write(new Text(word),one);
+	}
+	}
+	public static class Reducerclass extends Reducer<Text,IntWritable,Text,IntWritable>
+	{
+		private IntWritable result = new IntWritable();
+		public void reduce(Text key,Iterable<IntWritable> values,Context context) throws IOException,InterruptedException
+		{
+			long sum = 0;
+			for(IntWritable val : values)
+			{
+				sum += val.get();
+			}
+			result.set((int)sum);
+			context.write(key,result);
+		}
+	}
+	 public static void main(String[] args) throws Exception {
+		    Configuration conf = new Configuration();
+		    conf.set("mapreduce.output.textoutputformat.separator", ",");
+		    
+		    Job job = Job.getInstance(conf, "Transaction state");
+		    job.setJarByClass(Transaction_data.class);
+		    job.setMapperClass(TransactionMapper.class);
+		    //job.setCombinerClass(ReduceClass.class);
+		    job.setReducerClass(Reducerclass.class);
+		    //job.setNumReduceTasks(2);
+		    job.setOutputKeyClass(Text.class);
+		    job.setOutputValueClass(IntWritable.class);
+		    FileInputFormat.addInputPath(job, new Path(args[0]));
+		    FileOutputFormat.setOutputPath(job, new Path(args[1]));
+		    System.exit(job.waitForCompletion(true) ? 0 : 1);
+		  }
+
+}
+
+
+
+
+o/p:
+
+
+	Ohio,1900
+	Winconsin,4500
+	Texas,5600
+	NewYork,12000
